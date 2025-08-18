@@ -1,0 +1,103 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+out/
+
+# Electron build outputs
+release/
+app/
+packages/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Dependency directories
+jspm_packages/
+bower_components/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# Vite cache
+.vite/
+
+# Electron builder output
+electron-builder-output/
+
+# Temporary files
+temp/
+tmp/
+
+# Audio files (recordings)
+*.wav
+*.mp3
+*.webm
+*.m4a
+recordings/
+
+# Auto-generated files
+*.auto-save
+emergency-save-*
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Electron forge
+.webpack/
