@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mp3Encoder } from 'lamejs'
 
 interface AudioRecorderReturn {
   audioStream: MediaStream | null
@@ -42,8 +41,8 @@ const useAudioRecorder = (): AudioRecorderReturn => {
   const recordingDataRef = useRef<Blob[]>([])
   const currentFilePathRef = useRef<string | null>(null)
 
-  // WebMからMP3への変換関数
-  const convertWebMToMp3 = useCallback(async (webmBlob: Blob): Promise<Blob> => {
+  // WebMからWAVへの変換関数
+  const convertWebMToWav = useCallback(async (webmBlob: Blob): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       const fileReader = new FileReader()
@@ -53,35 +52,9 @@ const useAudioRecorder = (): AudioRecorderReturn => {
           const arrayBuffer = fileReader.result as ArrayBuffer
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
           
-          const mp3Encoder = new Mp3Encoder(1, audioBuffer.sampleRate, 128)
-          const samples = audioBuffer.getChannelData(0)
-          
-          // Float32ArrayからInt16Arrayに変換
-          const int16Array = new Int16Array(samples.length)
-          for (let i = 0; i < samples.length; i++) {
-            int16Array[i] = samples[i] * 0x7FFF
-          }
-          
-          // MP3エンコード
-          const mp3Data = []
-          const chunkSize = 1152
-          
-          for (let i = 0; i < int16Array.length; i += chunkSize) {
-            const chunk = int16Array.subarray(i, i + chunkSize)
-            const mp3buf = mp3Encoder.encodeBuffer(chunk)
-            if (mp3buf.length > 0) {
-              mp3Data.push(mp3buf)
-            }
-          }
-          
-          // 最終フラッシュ
-          const mp3buf = mp3Encoder.flush()
-          if (mp3buf.length > 0) {
-            mp3Data.push(mp3buf)
-          }
-          
-          const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' })
-          resolve(mp3Blob)
+          // WAVファイルを作成
+          const wavBlob = audioBufferToWav(audioBuffer)
+          resolve(wavBlob)
         } catch (error) {
           reject(error)
         }
@@ -90,6 +63,57 @@ const useAudioRecorder = (): AudioRecorderReturn => {
       fileReader.onerror = () => reject(fileReader.error)
       fileReader.readAsArrayBuffer(webmBlob)
     })
+  }, [])
+
+  // AudioBufferをWAVファイルに変換
+  const audioBufferToWav = useCallback((audioBuffer: AudioBuffer): Blob => {
+    const numberOfChannels = audioBuffer.numberOfChannels
+    const sampleRate = audioBuffer.sampleRate
+    const format = 1 // PCM
+    const bitDepth = 16
+
+    const bytesPerSample = bitDepth / 8
+    const blockAlign = numberOfChannels * bytesPerSample
+    const byteRate = sampleRate * blockAlign
+    const dataSize = audioBuffer.length * blockAlign
+    const bufferSize = 44 + dataSize
+
+    const buffer = new ArrayBuffer(bufferSize)
+    const view = new DataView(buffer)
+
+    // WAVヘッダーの書き込み
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
+      }
+    }
+
+    // RIFF識別子
+    writeString(0, 'RIFF')
+    view.setUint32(4, bufferSize - 8, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true) // フォーマットチャンクサイズ
+    view.setUint16(20, format, true)
+    view.setUint16(22, numberOfChannels, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, byteRate, true)
+    view.setUint16(32, blockAlign, true)
+    view.setUint16(34, bitDepth, true)
+    writeString(36, 'data')
+    view.setUint32(40, dataSize, true)
+
+    // PCMデータの書き込み
+    let offset = 44
+    for (let i = 0; i < audioBuffer.length; i++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]))
+        view.setInt16(offset, sample * 0x7FFF, true)
+        offset += 2
+      }
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' })
   }, [])
 
   // マイクの初期化
@@ -229,13 +253,13 @@ const useAudioRecorder = (): AudioRecorderReturn => {
       
       if (latestFilePath && window.electronAPI) {
         try {
-          // WebMからMP3に変換
-          console.log('MP3変換開始...')
-          const mp3Blob = await convertWebMToMp3(webmBlob)
-          console.log('MP3変換完了')
+          // WebMからWAVに変換
+          console.log('WAV変換開始...')
+          const wavBlob = await convertWebMToWav(webmBlob)
+          console.log('WAV変換完了')
           
-          // Electronを使用してファイル保存
-          const arrayBuffer = await mp3Blob.arrayBuffer()
+          // WAVファイルを保存
+          const arrayBuffer = await wavBlob.arrayBuffer()
           const result = await window.electronAPI.writeFile(latestFilePath, arrayBuffer)
           
           if (result.success) {
@@ -249,23 +273,32 @@ const useAudioRecorder = (): AudioRecorderReturn => {
           setError(err instanceof Error ? err : new Error('ファイル保存に失敗しました'))
         }
       } else {
-        // フォールバック: ブラウザのダウンロード
+        // フォールバック: WAVでブラウザダウンロード
         try {
-          console.log('フォールバック保存でMP3変換開始...')
-          const mp3Blob = await convertWebMToMp3(webmBlob)
-          console.log('フォールバック保存でMP3変換完了')
+          console.log('フォールバック保存でWAV変換開始...')
+          const wavBlob = await convertWebMToWav(webmBlob)
+          console.log('フォールバック保存でWAV変換完了')
           
-          const url = URL.createObjectURL(mp3Blob)
+          const url = URL.createObjectURL(wavBlob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.mp3`
+          a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`
           document.body.appendChild(a)
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
         } catch (err) {
-          console.error('MP3変換エラー:', err)
-          setError(err instanceof Error ? err : new Error('MP3変換に失敗しました'))
+          console.error('WAV変換エラー:', err)
+          // 最終フォールバック: WebM形式
+          console.log('最終フォールバック保存（WebM形式）')
+          const url = URL.createObjectURL(webmBlob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
         }
       }
     }
@@ -300,22 +333,24 @@ const useAudioRecorder = (): AudioRecorderReturn => {
   const saveChunkData = useCallback(async () => {
     if (recordingData.length > 0) {
       try {
+        // WAV変換を試行
         const webmBlob = new Blob(recordingData, { type: 'audio/webm' })
-        console.log('緊急保存でMP3変換開始...')
-        const mp3Blob = await convertWebMToMp3(webmBlob)
-        console.log('緊急保存でMP3変換完了')
+        console.log('緊急保存でWAV変換開始...')
+        const wavBlob = await convertWebMToWav(webmBlob)
+        console.log('緊急保存でWAV変換完了')
         
-        const url = URL.createObjectURL(mp3Blob)
+        const url = URL.createObjectURL(wavBlob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `emergency-save-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.mp3`
+        a.download = `emergency-save-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
+        console.log('緊急保存完了（WAV形式）')
       } catch (err) {
-        console.error('緊急保存MP3変換エラー:', err)
-        // フォールバック: WebMで保存
+        console.error('緊急保存WAV変換エラー:', err)
+        // フォールバック: WebM形式で保存
         const webmBlob = new Blob(recordingData, { type: 'audio/webm' })
         const url = URL.createObjectURL(webmBlob)
         const a = document.createElement('a')
@@ -325,44 +360,11 @@ const useAudioRecorder = (): AudioRecorderReturn => {
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
+        console.log('緊急保存完了（WebM形式）')
       }
     }
-  }, [recordingData, convertWebMToMp3])
+  }, [recordingData, convertWebMToWav])
 
-  // 最終的な録音データの保存
-  const saveRecording = useCallback(async () => {
-    if (recordingData.length === 0) return
-
-    const blob = new Blob(recordingData, { type: 'audio/webm' })
-    
-    if (currentFilePath && window.electronAPI) {
-      try {
-        // Electronを使用してファイル保存
-        const arrayBuffer = await blob.arrayBuffer()
-        const result = await window.electronAPI.writeFile(currentFilePath, arrayBuffer)
-        
-        if (result.success) {
-          console.log('ファイル保存成功:', currentFilePath)
-        } else {
-          console.error('ファイル保存エラー:', result.error)
-          setError(new Error(`ファイル保存エラー: ${result.error}`))
-        }
-      } catch (err) {
-        console.error('ファイル保存エラー:', err)
-        setError(err instanceof Error ? err : new Error('ファイル保存に失敗しました'))
-      }
-    } else {
-      // フォールバック: ブラウザのダウンロード
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    }
-  }, [recordingData, currentFilePath])
 
   // 入力ゲインの調整
   const setInputGain = useCallback((gain: number) => {
