@@ -1,15 +1,21 @@
 import React, { useEffect, useRef } from 'react'
 
-const AudioVisualizer = ({ audioStream, isRecording }) => {
-  const canvasRef = useRef(null)
-  const analyserRef = useRef(null)
-  const animationRef = useRef(null)
-  const audioContextRef = useRef(null)
+interface AudioVisualizerProps {
+  audioStream: MediaStream | null
+  isRecording: boolean
+}
+
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecording }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animationRef = useRef<number | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
 
   useEffect(() => {
     if (!audioStream) return
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    const audioContext = new AudioContextClass()
     const source = audioContext.createMediaStreamSource(audioStream)
     const analyser = audioContext.createAnalyser()
     
@@ -25,6 +31,8 @@ const AudioVisualizer = ({ audioStream, isRecording }) => {
 
       const canvas = canvasRef.current
       const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      
       const width = canvas.width
       const height = canvas.height
 

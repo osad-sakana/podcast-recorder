@@ -4,7 +4,13 @@
       "Bash(npm init:*)",
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run type-check:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

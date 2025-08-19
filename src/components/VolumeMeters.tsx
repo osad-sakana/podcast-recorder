@@ -1,18 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Box, HStack, Text, VStack } from '@chakra-ui/react'
 
-const VolumeMeters = ({ audioStream, onLevelUpdate, onClipping }) => {
-  const canvasRef = useRef(null)
-  const analyserRef = useRef(null)
-  const animationRef = useRef(null)
-  const [currentLevel, setCurrentLevel] = useState(0)
-  const [peakLevel, setPeakLevel] = useState(0)
-  const [isClipping, setIsClipping] = useState(false)
+interface VolumeMetersProps {
+  audioStream: MediaStream | null
+  onLevelUpdate?: (level: number) => void
+  onClipping?: (isClipping: boolean) => void
+}
+
+const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate, onClipping }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const animationRef = useRef<number | null>(null)
+  const [currentLevel, setCurrentLevel] = useState<number>(0)
+  const [peakLevel, setPeakLevel] = useState<number>(0)
+  const [isClipping, setIsClipping] = useState<boolean>(false)
 
   useEffect(() => {
     if (!audioStream) return
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    const audioContext = new AudioContextClass()
     const source = audioContext.createMediaStreamSource(audioStream)
     const analyser = audioContext.createAnalyser()
     
@@ -27,6 +34,8 @@ const VolumeMeters = ({ audioStream, onLevelUpdate, onClipping }) => {
 
       const canvas = canvasRef.current
       const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      
       const width = canvas.width
       const height = canvas.height
 
@@ -122,12 +131,12 @@ const VolumeMeters = ({ audioStream, onLevelUpdate, onClipping }) => {
   }, [audioStream, peakLevel, onLevelUpdate, onClipping])
 
   return (
-    <VStack spacing={2} w="full">
+    <VStack gap={2} w="full">
       <HStack justify="space-between" w="full">
         <Text fontSize="sm" fontWeight="medium">
           音量レベル
         </Text>
-        <HStack spacing={4} fontSize="xs" fontFamily="mono">
+        <HStack gap={4} fontSize="xs" fontFamily="mono">
           <Text color={isClipping ? 'red.400' : 'green.400'}>
             {currentLevel.toFixed(1)}dB
           </Text>

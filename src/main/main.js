@@ -1,22 +1,23 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
+const os = require('os')
 
 let mainWindow
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 300,
-    minWidth: 350,
-    minHeight: 250,
+    width: 420,
+    height: 800,
+    minWidth: 400,
+    minHeight: 750,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, './preload.js')
     },
     titleBarStyle: 'default',
-    show: false,
+    show: true,
     resizable: true
   })
 
@@ -62,14 +63,25 @@ ipcMain.handle('toggle-always-on-top', () => {
   return false
 })
 
+// デフォルトの保存先パスを取得
+ipcMain.handle('get-default-save-path', () => {
+  const desktopPath = path.join(os.homedir(), 'Desktop')
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
+  return path.join(desktopPath, `recording-${timestamp}.wav`)
+})
+
 // ファイル保存ダイアログ
 ipcMain.handle('show-save-dialog', async () => {
   if (mainWindow) {
+    const desktopPath = path.join(os.homedir(), 'Desktop')
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
+    const defaultPath = path.join(desktopPath, `recording-${timestamp}.wav`)
+    
     const result = await dialog.showSaveDialog(mainWindow, {
       filters: [
         { name: 'Audio Files', extensions: ['wav', 'mp3'] }
       ],
-      defaultPath: `recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`
+      defaultPath: defaultPath
     })
     return result
   }

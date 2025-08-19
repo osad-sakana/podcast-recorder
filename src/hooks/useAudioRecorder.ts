@@ -1,17 +1,35 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-const useAudioRecorder = () => {
-  const [audioStream, setAudioStream] = useState(null)
-  const [mediaRecorder, setMediaRecorder] = useState(null)
-  const [recordingData, setRecordingData] = useState([])
-  const [isInitialized, setIsInitialized] = useState(false)
-  const [error, setError] = useState(null)
-  const [currentFilePath, setCurrentFilePath] = useState(null)
+interface AudioRecorderReturn {
+  audioStream: MediaStream | null
+  mediaRecorder: MediaRecorder | null
+  recordingData: Blob[]
+  isInitialized: boolean
+  error: Error | null
+  analyser: AnalyserNode | null
+  audioContext: AudioContext | null
+  currentFilePath: string | null
+  startRecording: () => Promise<void>
+  stopRecording: () => void
+  setInputGain: (gain: number) => void
+  saveChunkData: () => void
+  emergencyStop: () => void
+  initializeAudio: () => Promise<void>
+  selectSaveLocation: () => Promise<boolean>
+}
+
+const useAudioRecorder = (): AudioRecorderReturn => {
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [recordingData, setRecordingData] = useState<Blob[]>([])
+  const [isInitialized, setIsInitialized] = useState<boolean>(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null)
   
-  const audioContextRef = useRef(null)
-  const gainNodeRef = useRef(null)
-  const analyserRef = useRef(null)
-  const autoSaveIntervalRef = useRef(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const gainNodeRef = useRef<GainNode | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // マイクの初期化
   const initializeAudio = useCallback(async () => {
@@ -29,7 +47,8 @@ const useAudioRecorder = () => {
       })
 
       // AudioContextの設定
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)({
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      const audioContext = new AudioContextClass({
         sampleRate: 44100
       })
       
@@ -59,13 +78,26 @@ const useAudioRecorder = () => {
       
     } catch (err) {
       console.error('Audio initialization error:', err)
-      setError(err)
+      setError(err instanceof Error ? err : new Error('Unknown error'))
+    }
+  }, [])
+
+  // デフォルトの保存先を設定
+  const setDefaultSavePath = useCallback(async () => {
+    if (window.electronAPI) {
+      try {
+        const defaultPath = await window.electronAPI.getDefaultSavePath()
+        setCurrentFilePath(defaultPath)
+      } catch (err) {
+        console.error('デフォルト保存先設定エラー:', err)
+      }
     }
   }, [])
 
   // コンポーネント初期化時にオーディオを設定
   useEffect(() => {
     initializeAudio()
+    setDefaultSavePath() // デフォルトの保存先を設定
     
     return () => {
       // クリーンアップ
@@ -79,7 +111,20 @@ const useAudioRecorder = () => {
         clearInterval(autoSaveIntervalRef.current)
       }
     }
-  }, [initializeAudio])
+  }, [initializeAudio, setDefaultSavePath])
+
+  // 保存先選択
+  const selectSaveLocation = useCallback(async (): Promise<boolean> => {
+    if (window.electronAPI) {
+      const saveDialog = await window.electronAPI.showSaveDialog()
+      if (saveDialog.canceled) {
+        return false
+      }
+      setCurrentFilePath(saveDialog.filePath || null)
+      return true
+    }
+    return false
+  }, [])
 
   // 録音開始
   const startRecording = useCallback(async () => {
@@ -87,20 +132,16 @@ const useAudioRecorder = () => {
       throw new Error('MediaRecorder is not ready')
     }
 
-    // 保存先を選択
-    if (window.electronAPI) {
-      const saveDialog = await window.electronAPI.showSaveDialog()
-      if (saveDialog.canceled) {
-        throw new Error('保存先が選択されていません')
-      }
-      setCurrentFilePath(saveDialog.filePath)
+    // 保存先が設定されていない場合はエラー
+    if (!currentFilePath) {
+      throw new Error('保存先が設定されていません。先に保存先を選択してください。')
     }
 
     setRecordingData([])
     setError(null)
 
     // データが利用可能になったときの処理
-    mediaRecorder.ondataavailable = (event) => {
+    mediaRecorder.ondataavailable = (event: BlobEvent) => {
       if (event.data.size > 0) {
         setRecordingData(prev => [...prev, event.data])
       }
@@ -115,9 +156,9 @@ const useAudioRecorder = () => {
     }
 
     // エラーハンドリング
-    mediaRecorder.onerror = (event) => {
-      console.error('MediaRecorder error:', event.error)
-      setError(event.error)
+    mediaRecorder.onerror = (event: Event) => {
+      console.error('MediaRecorder error:', event)
+      setError(new Error('MediaRecorder error'))
     }
 
     // 録音開始（1秒ごとにデータを取得）
@@ -185,7 +226,7 @@ const useAudioRecorder = () => {
   }, [recordingData, currentFilePath])
 
   // 入力ゲインの調整
-  const setInputGain = useCallback((gain) => {
+  const setInputGain = useCallback((gain: number) => {
     if (gainNodeRef.current) {
       gainNodeRef.current.gain.value = gain
     }
@@ -209,12 +250,14 @@ const useAudioRecorder = () => {
     error,
     analyser: analyserRef.current,
     audioContext: audioContextRef.current,
+    currentFilePath,
     startRecording,
     stopRecording,
     setInputGain,
     saveChunkData,
     emergencyStop,
-    initializeAudio
+    initializeAudio,
+    selectSaveLocation
   }
 }
 
