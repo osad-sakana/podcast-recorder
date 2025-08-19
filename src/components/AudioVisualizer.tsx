@@ -41,7 +41,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
       analyserRef.current.getByteTimeDomainData(dataArray)
 
       // 背景をクリア
-      ctx.fillStyle = isRecording ? '#1A1A1A' : '#2D3748'
+      ctx.fillStyle = isRecording ? '#000000' : '#1A202C'
       ctx.fillRect(0, 0, width, height)
 
       // 波形を描画

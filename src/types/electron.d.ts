@@ -4,6 +4,10 @@ export interface ElectronAPI {
     canceled: boolean
     filePath?: string
   }>
+  writeFile: (filePath: string, buffer: ArrayBuffer) => Promise<{
+    success: boolean
+    error?: string
+  }>
   getDefaultSavePath: () => Promise<string>
 }
 

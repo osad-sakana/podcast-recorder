@@ -8,7 +8,7 @@ import {
   Badge,
   Separator
 } from '@chakra-ui/react'
-import { FaMicrophone, FaStop, FaThumbtack, FaExclamationTriangle, FaFolder } from 'react-icons/fa'
+import { FaMicrophone, FaStop, FaThumbtack, FaFolder } from 'react-icons/fa'
 import AudioVisualizer from '../components/AudioVisualizer'
 import VolumeMeters from '../components/VolumeMeters'
 import useAudioRecorder from '../hooks/useAudioRecorder'
@@ -29,7 +29,6 @@ const App: React.FC = () => {
     error,
     currentFilePath,
     setInputGain: setRecorderInputGain,
-    emergencyStop,
     selectSaveLocation
   } = useAudioRecorder()
 
@@ -92,17 +91,19 @@ const App: React.FC = () => {
       minH="750px"
       w="100vw"
       minW="400px"
-      bg="gray.900"
-      border={isRecording ? '2px solid' : 'none'}
-      borderColor={isRecording ? 'red.500' : 'transparent'}
-      transition="border-color 0.3s"
+      bg="black"
+      color="gray.100"
+      border={isRecording ? '4px solid' : '2px solid'}
+      borderColor={isRecording ? 'red.500' : 'gray.700'}
+      boxShadow={isRecording ? '0 0 20px rgba(239, 68, 68, 0.6)' : 'none'}
+      transition="all 0.3s ease"
       overflow="hidden"
     >
       <VStack gap={3} h="full" overflow="hidden" justify="flex-start">
         {/* 上部セクション: ヘッダー */}
         <VStack gap={3} w="full">
           <HStack justify="space-between" w="full">
-            <Text fontSize="lg" fontWeight="bold" color="white">
+            <Text fontSize="lg" fontWeight="bold" color="gray.100">
               Podcast Recorder
             </Text>
             <HStack gap={2}>
@@ -132,7 +133,7 @@ const App: React.FC = () => {
             onClipping={setIsClipping}
           />
 
-          <Box w="full" h="50px" bg="gray.800" borderRadius="md">
+          <Box w="full" h="50px" bg="gray.900" borderRadius="md" border="1px solid" borderColor="gray.700">
             <AudioVisualizer audioStream={audioStream} isRecording={isRecording} />
           </Box>
 
@@ -156,9 +157,11 @@ const App: React.FC = () => {
                 width: '100%',
                 height: '8px',
                 borderRadius: '4px',
-                background: '#4A5568',
+                background: '#2D3748',
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none'
               }}
             />
           </VStack>
@@ -178,6 +181,8 @@ const App: React.FC = () => {
                 onClick={handleSelectSaveLocation}
                 colorScheme="blue"
                 variant="outline"
+                color="blue.300"
+                _hover={{ color: "blue.200" }}
               >
                 <FaFolder /> 選択
               </Button>
@@ -212,22 +217,6 @@ const App: React.FC = () => {
           >
             {isRecording ? <><FaStop /> 録音停止</> : <><FaMicrophone /> 録音開始</>}
           </Button>
-          
-          {/* 緊急停止ボタン */}
-          {isRecording && (
-            <Button
-              size="sm"
-              colorScheme="orange"
-              variant="outline"
-              onClick={() => {
-                emergencyStop()
-                setIsRecording(false)
-              }}
-              w="full"
-            >
-              <FaExclamationTriangle /> 緊急停止
-            </Button>
-          )}
 
           {/* 録音時間とステータス */}
           <HStack justify="space-between" w="full" fontSize="sm" gap={2}>

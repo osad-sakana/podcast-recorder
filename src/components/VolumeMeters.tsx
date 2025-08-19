@@ -66,7 +66,7 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
       if (onClipping) onClipping(clipping)
 
       // キャンバスのクリア
-      ctx.fillStyle = '#1A202C'
+      ctx.fillStyle = '#000000'
       ctx.fillRect(0, 0, width, height)
 
       // メーターの描画
@@ -76,7 +76,7 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
       const meterY = (height - meterHeight) / 2
 
       // 背景の描画
-      ctx.fillStyle = '#2D3748'
+      ctx.fillStyle = '#1A202C'
       ctx.fillRect(meterX, meterY, meterWidth, meterHeight)
 
       // レベルバーの描画

@@ -67,7 +67,7 @@ ipcMain.handle('toggle-always-on-top', () => {
 ipcMain.handle('get-default-save-path', () => {
   const desktopPath = path.join(os.homedir(), 'Desktop')
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
-  return path.join(desktopPath, `recording-${timestamp}.wav`)
+  return path.join(desktopPath, `recording-${timestamp}.mp3`)
 })
 
 // ファイル保存ダイアログ
@@ -75,15 +75,27 @@ ipcMain.handle('show-save-dialog', async () => {
   if (mainWindow) {
     const desktopPath = path.join(os.homedir(), 'Desktop')
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
-    const defaultPath = path.join(desktopPath, `recording-${timestamp}.wav`)
+    const defaultPath = path.join(desktopPath, `recording-${timestamp}.mp3`)
     
     const result = await dialog.showSaveDialog(mainWindow, {
       filters: [
-        { name: 'Audio Files', extensions: ['wav', 'mp3'] }
+        { name: 'Audio Files', extensions: ['mp3', 'wav'] }
       ],
       defaultPath: defaultPath
     })
     return result
   }
   return null
+})
+
+// ファイル書き込み
+ipcMain.handle('write-file', async (event, filePath, buffer) => {
+  const fs = require('fs').promises
+  try {
+    await fs.writeFile(filePath, buffer)
+    return { success: true }
+  } catch (error) {
+    console.error('File write error:', error)
+    return { success: false, error: error.message }
+  }
 })

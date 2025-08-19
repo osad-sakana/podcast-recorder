@@ -19,6 +19,27 @@
       width: 100vw;
       overflow: hidden;
     }
+    
+    /* スライダーのカスタムスタイル */
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #3182CE;
+      cursor: pointer;
+      border: 2px solid #2C5282;
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #3182CE;
+      cursor: pointer;
+      border: 2px solid #2C5282;
+    }
   </style>
 </head>
 <body>
