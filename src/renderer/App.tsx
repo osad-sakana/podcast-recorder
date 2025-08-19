@@ -6,7 +6,9 @@ import {
   Button,
   Text,
   Badge,
-  Separator
+  Separator,
+  Input,
+  Select
 } from '@chakra-ui/react'
 import { FaMicrophone, FaStop, FaThumbtack, FaFolder } from 'react-icons/fa'
 import AudioVisualizer from '../components/AudioVisualizer'
@@ -19,6 +21,10 @@ const App: React.FC = () => {
   const [inputGain, setInputGain] = useState<number>(1)
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState<boolean>(false)
   const [isClipping, setIsClipping] = useState<boolean>(false)
+  const [title, setTitle] = useState<string>('')
+  const [inputSource, setInputSource] = useState<string>('')
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
 
   const {
     startRecording,
@@ -30,7 +36,38 @@ const App: React.FC = () => {
     currentFilePath,
     setInputGain: setRecorderInputGain,
     selectSaveLocation
-  } = useAudioRecorder()
+  } = useAudioRecorder(title, inputSource, selectedDeviceId)
+
+  // オーディオデバイス一覧を取得
+  useEffect(() => {
+    const getAudioDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const audioInputs = devices.filter(device => device.kind === 'audioinput')
+        setAudioDevices(audioInputs)
+        
+        // デフォルトデバイスを設定
+        const defaultDevice = audioInputs.find(device => device.deviceId === 'default') || audioInputs[0]
+        if (defaultDevice) {
+          setSelectedDeviceId(defaultDevice.deviceId)
+          setInputSource(defaultDevice.label || 'マイク')
+        }
+      } catch (err) {
+        console.error('デバイス一覧取得エラー:', err)
+      }
+    }
+
+    getAudioDevices()
+  }, [])
+
+  // デバイス選択時の処理
+  const handleDeviceChange = (deviceId: string) => {
+    setSelectedDeviceId(deviceId)
+    const selectedDevice = audioDevices.find(device => device.deviceId === deviceId)
+    if (selectedDevice) {
+      setInputSource(selectedDevice.label || 'マイク')
+    }
+  }
 
   // 録音時間の更新
   useEffect(() => {
@@ -203,6 +240,58 @@ const App: React.FC = () => {
                 保存先を選択してください
               </Text>
             )}
+          </VStack>
+
+          <Separator />
+
+          <VStack gap={3} w="full">
+            <VStack gap={2} w="full">
+              <HStack justify="space-between" w="full">
+                <Text fontSize="sm" fontWeight="medium">
+                  タイトル
+                </Text>
+              </HStack>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="録音のタイトルを入力"
+                size="sm"
+                bg="gray.800"
+                border="1px solid"
+                borderColor="gray.600"
+                color="gray.100"
+                _placeholder={{ color: "gray.400" }}
+                _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #3182CE" }}
+              />
+            </VStack>
+
+            <VStack gap={2} w="full">
+              <HStack justify="space-between" w="full">
+                <Text fontSize="sm" fontWeight="medium">
+                  入力ソース
+                </Text>
+              </HStack>
+              <Select
+                value={selectedDeviceId}
+                onChange={(e) => handleDeviceChange(e.target.value)}
+                size="sm"
+                bg="gray.800"
+                border="1px solid"
+                borderColor="gray.600"
+                color="gray.100"
+                _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px #3182CE" }}
+              >
+                {audioDevices.length === 0 ? (
+                  <option value="">デバイスを読み込み中...</option>
+                ) : (
+                  audioDevices.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label || `マイク ${device.deviceId.slice(0, 8)}`}
+                    </option>
+                  ))
+                )}
+              </Select>
+            </VStack>
           </VStack>
 
           <Separator />

@@ -1,6 +1,6 @@
 export interface ElectronAPI {
   toggleAlwaysOnTop: () => Promise<boolean>
-  showSaveDialog: () => Promise<{
+  showSaveDialog: (title?: string, inputSource?: string) => Promise<{
     canceled: boolean
     filePath?: string
   }>
@@ -8,7 +8,7 @@ export interface ElectronAPI {
     success: boolean
     error?: string
   }>
-  getDefaultSavePath: () => Promise<string>
+  getDefaultSavePath: (title?: string, inputSource?: string) => Promise<string>
 }
 
 declare global {

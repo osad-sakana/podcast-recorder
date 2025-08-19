@@ -17,7 +17,7 @@ interface AudioRecorderReturn {
   selectSaveLocation: () => Promise<boolean>
 }
 
-const useAudioRecorder = (): AudioRecorderReturn => {
+const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId: string = ''): AudioRecorderReturn => {
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recordingData, setRecordingData] = useState<Blob[]>([])
@@ -40,6 +40,26 @@ const useAudioRecorder = (): AudioRecorderReturn => {
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingDataRef = useRef<Blob[]>([])
   const currentFilePathRef = useRef<string | null>(null)
+
+  // ファイル名生成関数
+  const generateFileName = useCallback((customTitle?: string, customInputSource?: string): string => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hour = String(now.getHours()).padStart(2, '0')
+    const minute = String(now.getMinutes()).padStart(2, '0')
+    const second = String(now.getSeconds()).padStart(2, '0')
+    
+    const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
+    const titlePart = (customTitle || title).trim() || 'recording'
+    const hostName = 'macOS' // 簡易的な端末名
+    
+    // ファイル名に使用できない文字を除去
+    const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
+    
+    return `${dateTime}_${sanitizedTitle}_${hostName}.wav`
+  }, [title])
 
   // WebMからWAVへの変換関数
   const convertWebMToWav = useCallback(async (webmBlob: Blob): Promise<Blob> => {
@@ -121,14 +141,21 @@ const useAudioRecorder = (): AudioRecorderReturn => {
     try {
       setError(null)
       
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: 44100,
+        channelCount: 1
+      }
+      
+      // デバイスIDが指定されている場合は使用
+      if (deviceId && deviceId !== 'default') {
+        audioConstraints.deviceId = { exact: deviceId }
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: 44100,
-          channelCount: 1
-        }
+        audio: audioConstraints
       })
 
       // AudioContextの設定
@@ -165,19 +192,19 @@ const useAudioRecorder = (): AudioRecorderReturn => {
       console.error('Audio initialization error:', err)
       setError(err instanceof Error ? err : new Error('Unknown error'))
     }
-  }, [])
+  }, [deviceId])
 
   // デフォルトの保存先を設定
   const setDefaultSavePath = useCallback(async () => {
     if (window.electronAPI) {
       try {
-        const defaultPath = await window.electronAPI.getDefaultSavePath()
+        const defaultPath = await window.electronAPI.getDefaultSavePath(title, inputSource)
         setCurrentFilePath(defaultPath)
       } catch (err) {
         console.error('デフォルト保存先設定エラー:', err)
       }
     }
-  }, [])
+  }, [title, inputSource])
 
   // コンポーネント初期化時にオーディオを設定
   useEffect(() => {
@@ -198,10 +225,17 @@ const useAudioRecorder = (): AudioRecorderReturn => {
     }
   }, [initializeAudio, setDefaultSavePath])
 
+  // デバイス変更時にオーディオを再初期化
+  useEffect(() => {
+    if (deviceId) {
+      initializeAudio()
+    }
+  }, [deviceId, initializeAudio])
+
   // 保存先選択
   const selectSaveLocation = useCallback(async (): Promise<boolean> => {
     if (window.electronAPI) {
-      const saveDialog = await window.electronAPI.showSaveDialog()
+      const saveDialog = await window.electronAPI.showSaveDialog(title, inputSource)
       if (saveDialog.canceled) {
         return false
       }
@@ -209,7 +243,7 @@ const useAudioRecorder = (): AudioRecorderReturn => {
       return true
     }
     return false
-  }, [])
+  }, [title, inputSource])
 
   // 録音開始
   const startRecording = useCallback(async () => {

@@ -64,18 +64,50 @@ ipcMain.handle('toggle-always-on-top', () => {
 })
 
 // デフォルトの保存先パスを取得
-ipcMain.handle('get-default-save-path', () => {
+ipcMain.handle('get-default-save-path', (_, title = '', inputSource = '') => {
   const desktopPath = path.join(os.homedir(), 'Desktop')
-  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
-  return path.join(desktopPath, `recording-${timestamp}.wav`)
+  
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hour = String(now.getHours()).padStart(2, '0')
+  const minute = String(now.getMinutes()).padStart(2, '0')
+  const second = String(now.getSeconds()).padStart(2, '0')
+  
+  const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
+  const titlePart = title.trim() || 'recording'
+  const hostName = 'macOS' // 簡易的な端末名
+  
+  // ファイル名に使用できない文字を除去
+  const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
+  
+  const fileName = `${dateTime}_${sanitizedTitle}_${hostName}.wav`
+  return path.join(desktopPath, fileName)
 })
 
 // ファイル保存ダイアログ
-ipcMain.handle('show-save-dialog', async () => {
+ipcMain.handle('show-save-dialog', async (_, title = '', inputSource = '') => {
   if (mainWindow) {
     const desktopPath = path.join(os.homedir(), 'Desktop')
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
-    const defaultPath = path.join(desktopPath, `recording-${timestamp}.wav`)
+    
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hour = String(now.getHours()).padStart(2, '0')
+    const minute = String(now.getMinutes()).padStart(2, '0')
+    const second = String(now.getSeconds()).padStart(2, '0')
+    
+    const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
+    const titlePart = title.trim() || 'recording'
+    const hostName = 'macOS' // 簡易的な端末名
+    
+    // ファイル名に使用できない文字を除去
+    const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
+    
+    const fileName = `${dateTime}_${sanitizedTitle}_${hostName}.wav`
+    const defaultPath = path.join(desktopPath, fileName)
     
     const result = await dialog.showSaveDialog(mainWindow, {
       filters: [
