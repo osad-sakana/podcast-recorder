@@ -62,11 +62,24 @@
       "src/main/**/*",
       "node_modules/**/*"
     ],
+    "icon": "build/icons/icon.png",
     "mac": {
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "icon": "build/icons/icon.icns"
+    },
+    "win": {
+      "icon": "build/icons/icon.png"
+    },
+    "linux": {
+      "icon": "build/icons/icon.png"
     },
     "dmg": {
-      "title": "Podcast Recorder"
+      "title": "Podcast Recorder",
+      "icon": "build/icons/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

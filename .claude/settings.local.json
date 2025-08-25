@@ -15,7 +15,9 @@
       "Bash(npm run build:*)",
       "Bash(npm run lint:*)",
       "Bash(electron-builder:*)",
-      "Bash(npx electron-builder:*)"
+      "Bash(npx electron-builder:*)",
+      "Bash(sips:*)",
+      "Bash(iconutil:*)"
     ],
     "deny": [],
     "ask": []
