@@ -1,5 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace NodeJS {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface Timeout {}
+  }
+}
+
 interface AudioRecorderReturn {
   audioStream: MediaStream | null
   mediaRecorder: MediaRecorder | null
@@ -41,39 +49,20 @@ const useAudioRecorder = (
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  // eslint-disable-next-line no-undef
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const recordingDataRef = useRef<Blob[]>([])
   const currentFilePathRef = useRef<string | null>(null)
-
-  // ファイル名生成関数
-  const generateFileName = useCallback(
-    (customTitle?: string, customInputSource?: string): string => {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const hour = String(now.getHours()).padStart(2, '0')
-      const minute = String(now.getMinutes()).padStart(2, '0')
-      const second = String(now.getSeconds()).padStart(2, '0')
-
-      const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
-      const titlePart = (customTitle || title).trim() || 'recording'
-      const hostName = 'macOS' // 簡易的な端末名
-
-      // ファイル名に使用できない文字を除去
-      const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
-
-      return `${dateTime}_${sanitizedTitle}_${hostName}.wav`
-    },
-    [title]
-  )
 
   // WebMからWAVへの変換関数
   const convertWebMToWav = useCallback(
     async (webmBlob: Blob): Promise<Blob> => {
       return new Promise((resolve, reject) => {
         const audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)()
+          (
+            window as Window &
+              typeof globalThis & { webkitAudioContext?: typeof AudioContext }
+          ).webkitAudioContext)()
         const fileReader = new FileReader()
 
         fileReader.onload = async () => {
@@ -93,6 +82,7 @@ const useAudioRecorder = (
         fileReader.readAsArrayBuffer(webmBlob)
       })
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
 
@@ -155,7 +145,14 @@ const useAudioRecorder = (
     try {
       setError(null)
 
-      const audioConstraints: MediaTrackConstraints = {
+      const audioConstraints: {
+        echoCancellation?: boolean
+        noiseSuppression?: boolean
+        autoGainControl?: boolean
+        sampleRate?: number
+        channelCount?: number
+        deviceId?: { exact: string }
+      } = {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
@@ -174,7 +171,11 @@ const useAudioRecorder = (
 
       // AudioContextの設定
       const AudioContextClass =
-        window.AudioContext || (window as any).webkitAudioContext
+        window.AudioContext ||
+        (
+          window as Window &
+            typeof globalThis & { webkitAudioContext?: typeof AudioContext }
+        ).webkitAudioContext
       const audioContext = new AudioContextClass({
         sampleRate: 44100,
       })
@@ -243,7 +244,7 @@ const useAudioRecorder = (
         clearInterval(autoSaveIntervalRef.current)
       }
     }
-  }, [initializeAudio, setDefaultSavePath])
+  }, [initializeAudio, setDefaultSavePath, audioStream])
 
   // デバイス変更時にオーディオを再初期化
   useEffect(() => {
@@ -388,6 +389,7 @@ const useAudioRecorder = (
       },
       5 * 60 * 1000
     ) // 5分
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaRecorder, currentFilePath])
 
   // 録音停止

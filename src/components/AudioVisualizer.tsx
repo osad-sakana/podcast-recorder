@@ -18,7 +18,11 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
     if (!audioStream) return
 
     const AudioContextClass =
-      window.AudioContext || (window as any).webkitAudioContext
+      window.AudioContext ||
+      (
+        window as Window &
+          typeof globalThis & { webkitAudioContext?: typeof AudioContext }
+      ).webkitAudioContext
     const audioContext = new AudioContextClass()
     const source = audioContext.createMediaStreamSource(audioStream)
     const analyser = audioContext.createAnalyser()

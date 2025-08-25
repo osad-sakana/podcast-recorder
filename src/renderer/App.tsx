@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react'
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace NodeJS {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface Timeout {}
+  }
+}
 import {
   Box,
   VStack,
@@ -76,6 +84,7 @@ const App: React.FC = () => {
 
   // 録音時間の更新
   useEffect(() => {
+    // eslint-disable-next-line no-undef
     let interval: NodeJS.Timeout
     if (isRecording) {
       interval = setInterval(() => {
