@@ -17,7 +17,11 @@
       "Bash(electron-builder:*)",
       "Bash(npx electron-builder:*)",
       "Bash(sips:*)",
-      "Bash(iconutil:*)"
+      "Bash(iconutil:*)",
+      "Bash(open:*)",
+      "WebSearch",
+      "WebFetch(domain:stackoverflow.com)",
+      "Bash(npx asar list:*)"
     ],
     "deny": [],
     "ask": []

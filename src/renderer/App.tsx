@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [inputSource, setInputSource] = useState<string>('')
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
+  const [isAppLoading, setIsAppLoading] = useState<boolean>(true)
 
   const {
     startRecording,
@@ -70,6 +71,15 @@ const App: React.FC = () => {
 
     getAudioDevices()
   }, [])
+
+  // アプリの初期化が完了したらローディング状態を解除
+  useEffect(() => {
+    const initializationTimer = setTimeout(() => {
+      setIsAppLoading(false)
+    }, 1500) // オーディオ初期化を待つ
+
+    return () => clearTimeout(initializationTimer)
+  }, [isInitialized, audioDevices])
 
   // デバイス選択時の処理
   const handleDeviceChange = (deviceId: string) => {
@@ -135,21 +145,117 @@ const App: React.FC = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  return (
+  // ローディング画面コンポーネント
+  const LoadingOverlay = () => (
     <Box
-      p={3}
-      h="100vh"
-      minH="750px"
-      w="100vw"
-      minW="400px"
-      bg="black"
-      color="gray.100"
-      border={isRecording ? '4px solid' : '2px solid'}
-      borderColor={isRecording ? 'red.500' : 'gray.700'}
-      boxShadow={isRecording ? '0 0 20px rgba(239, 68, 68, 0.6)' : 'none'}
-      transition="all 0.3s ease"
-      overflow="hidden"
+      position="fixed"
+      top={0}
+      left={0}
+      right={0}
+      bottom={0}
+      bg="linear-gradient(135deg, #1a1a1a 0%, #2d3748 100%)"
+      color="white"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      zIndex={9999}
+      opacity={isAppLoading ? 1 : 0}
+      visibility={isAppLoading ? 'visible' : 'hidden'}
+      transition="all 0.5s ease-in-out"
     >
+      <Box
+        w="80px"
+        h="80px"
+        bg="linear-gradient(45deg, #4299E1, #E53E3E)"
+        borderRadius="20px"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        mb={6}
+        animation={`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+          }
+        `}
+      >
+        <Text fontSize="36px" role="img" aria-label="microphone">
+          🎙️
+        </Text>
+      </Box>
+      
+      <Text fontSize="24px" fontWeight="600" mb={2}>
+        Podcast Recorder
+      </Text>
+      
+      <Text fontSize="14px" opacity={0.7} mb={8}>
+        音声録音アプリケーション
+      </Text>
+      
+      <Box
+        w="200px"
+        h="3px"
+        bg="rgba(255, 255, 255, 0.1)"
+        borderRadius="2px"
+        overflow="hidden"
+        mb={5}
+      >
+        <Box
+          h="100%"
+          bg="linear-gradient(90deg, #4299E1, #E53E3E)"
+          borderRadius="2px"
+          animation="loading 2s ease-in-out infinite"
+          css={`
+            @keyframes loading {
+              0% { width: 0%; }
+              50% { width: 60%; }
+              100% { width: 100%; }
+            }
+          `}
+        />
+      </Box>
+      
+      <Box
+        w="40px"
+        h="40px"
+        border="3px solid rgba(255, 255, 255, 0.1)"
+        borderTop="3px solid #4299E1"
+        borderRadius="50%"
+        animation="spin 1s linear infinite"
+        css={`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      />
+      
+      <Text mt={4} fontSize="14px" opacity={0.8}>
+        初期化中...
+      </Text>
+    </Box>
+  )
+
+  return (
+    <>
+      <LoadingOverlay />
+      <Box
+        p={3}
+        h="100vh"
+        minH="750px"
+        w="100vw"
+        minW="400px"
+        bg="black"
+        color="gray.100"
+        border={isRecording ? '4px solid' : '2px solid'}
+        borderColor={isRecording ? 'red.500' : 'gray.700'}
+        boxShadow={isRecording ? '0 0 20px rgba(239, 68, 68, 0.6)' : 'none'}
+        transition="all 0.3s ease"
+        overflow="hidden"
+        opacity={isAppLoading ? 0.3 : 1}
+        filter={isAppLoading ? 'blur(2px)' : 'none'}
+      >
       <VStack gap={3} h="full" overflow="hidden" justify="flex-start">
         {/* 上部セクション: ヘッダー */}
         <VStack gap={3} w="full">
@@ -390,7 +496,8 @@ const App: React.FC = () => {
           </VStack>
         </VStack>
       </VStack>
-    </Box>
+      </Box>
+    </>
   )
 }
 

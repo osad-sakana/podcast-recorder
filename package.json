@@ -62,6 +62,13 @@
       "src/main/**/*",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "dist/renderer",
+        "to": "renderer",
+        "filter": ["**/*"]
+      }
+    ],
     "icon": "build/icons/icon.png",
     "mac": {
       "category": "public.app-category.productivity",
