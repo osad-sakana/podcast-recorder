@@ -5,7 +5,10 @@ interface AudioVisualizerProps {
   isRecording: boolean
 }
 
-const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecording }) => {
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+  audioStream,
+  isRecording,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animationRef = useRef<number | null>(null)
@@ -14,14 +17,15 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
   useEffect(() => {
     if (!audioStream) return
 
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    const AudioContextClass =
+      window.AudioContext || (window as any).webkitAudioContext
     const audioContext = new AudioContextClass()
     const source = audioContext.createMediaStreamSource(audioStream)
     const analyser = audioContext.createAnalyser()
-    
+
     analyser.fftSize = 1024
     analyser.smoothingTimeConstant = 0.6
-    
+
     source.connect(analyser)
     analyserRef.current = analyser
     audioContextRef.current = audioContext
@@ -32,7 +36,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
       const canvas = canvasRef.current
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      
+
       const width = canvas.width
       const height = canvas.height
 
@@ -54,7 +58,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
 
       for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0
-        const y = v * height / 2
+        const y = (v * height) / 2
 
         if (i === 0) {
           ctx.moveTo(x, y)
@@ -81,7 +85,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
         ctx.fillStyle = '#E53E3E'
         ctx.font = '12px Arial'
         ctx.fillText('REC', 10, 20)
-        
+
         // 録音中の点滅効果（グローエフェクト）
         const time = Date.now()
         const pulse = Math.sin(time * 0.003) * 0.3 + 0.7
@@ -98,7 +102,10 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== 'closed'
+      ) {
         audioContextRef.current.close()
       }
     }
@@ -109,11 +116,11 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream, isRecord
       ref={canvasRef}
       width={350}
       height={60}
-      style={{ 
-        width: '100%', 
-        height: '100%', 
+      style={{
+        width: '100%',
+        height: '100%',
         borderRadius: '6px',
-        background: isRecording ? '#1A1A1A' : '#2D3748'
+        background: isRecording ? '#1A1A1A' : '#2D3748',
       }}
     />
   )

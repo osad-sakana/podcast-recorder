@@ -17,7 +17,11 @@ interface AudioRecorderReturn {
   selectSaveLocation: () => Promise<boolean>
 }
 
-const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId: string = ''): AudioRecorderReturn => {
+const useAudioRecorder = (
+  title: string = '',
+  inputSource: string = '',
+  deviceId: string = ''
+): AudioRecorderReturn => {
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const [recordingData, setRecordingData] = useState<Blob[]>([])
@@ -33,7 +37,7 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   useEffect(() => {
     currentFilePathRef.current = currentFilePath
   }, [currentFilePath])
-  
+
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -42,48 +46,55 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   const currentFilePathRef = useRef<string | null>(null)
 
   // ファイル名生成関数
-  const generateFileName = useCallback((customTitle?: string, customInputSource?: string): string => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hour = String(now.getHours()).padStart(2, '0')
-    const minute = String(now.getMinutes()).padStart(2, '0')
-    const second = String(now.getSeconds()).padStart(2, '0')
-    
-    const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
-    const titlePart = (customTitle || title).trim() || 'recording'
-    const hostName = 'macOS' // 簡易的な端末名
-    
-    // ファイル名に使用できない文字を除去
-    const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
-    
-    return `${dateTime}_${sanitizedTitle}_${hostName}.wav`
-  }, [title])
+  const generateFileName = useCallback(
+    (customTitle?: string, customInputSource?: string): string => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const hour = String(now.getHours()).padStart(2, '0')
+      const minute = String(now.getMinutes()).padStart(2, '0')
+      const second = String(now.getSeconds()).padStart(2, '0')
+
+      const dateTime = `${year}${month}${day}_${hour}${minute}${second}`
+      const titlePart = (customTitle || title).trim() || 'recording'
+      const hostName = 'macOS' // 簡易的な端末名
+
+      // ファイル名に使用できない文字を除去
+      const sanitizedTitle = titlePart.replace(/[<>:"/\\|?*]/g, '_')
+
+      return `${dateTime}_${sanitizedTitle}_${hostName}.wav`
+    },
+    [title]
+  )
 
   // WebMからWAVへの変換関数
-  const convertWebMToWav = useCallback(async (webmBlob: Blob): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const fileReader = new FileReader()
-      
-      fileReader.onload = async () => {
-        try {
-          const arrayBuffer = fileReader.result as ArrayBuffer
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-          
-          // WAVファイルを作成
-          const wavBlob = audioBufferToWav(audioBuffer)
-          resolve(wavBlob)
-        } catch (error) {
-          reject(error)
+  const convertWebMToWav = useCallback(
+    async (webmBlob: Blob): Promise<Blob> => {
+      return new Promise((resolve, reject) => {
+        const audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)()
+        const fileReader = new FileReader()
+
+        fileReader.onload = async () => {
+          try {
+            const arrayBuffer = fileReader.result as ArrayBuffer
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+
+            // WAVファイルを作成
+            const wavBlob = audioBufferToWav(audioBuffer)
+            resolve(wavBlob)
+          } catch (error) {
+            reject(error)
+          }
         }
-      }
-      
-      fileReader.onerror = () => reject(fileReader.error)
-      fileReader.readAsArrayBuffer(webmBlob)
-    })
-  }, [])
+
+        fileReader.onerror = () => reject(fileReader.error)
+        fileReader.readAsArrayBuffer(webmBlob)
+      })
+    },
+    []
+  )
 
   // AudioBufferをWAVファイルに変換
   const audioBufferToWav = useCallback((audioBuffer: AudioBuffer): Blob => {
@@ -127,8 +138,11 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
     let offset = 44
     for (let i = 0; i < audioBuffer.length; i++) {
       for (let channel = 0; channel < numberOfChannels; channel++) {
-        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]))
-        view.setInt16(offset, sample * 0x7FFF, true)
+        const sample = Math.max(
+          -1,
+          Math.min(1, audioBuffer.getChannelData(channel)[i])
+        )
+        view.setInt16(offset, sample * 0x7fff, true)
         offset += 2
       }
     }
@@ -140,54 +154,54 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   const initializeAudio = useCallback(async () => {
     try {
       setError(null)
-      
+
       const audioConstraints: MediaTrackConstraints = {
         echoCancellation: false,
         noiseSuppression: false,
         autoGainControl: false,
         sampleRate: 44100,
-        channelCount: 1
+        channelCount: 1,
       }
-      
+
       // デバイスIDが指定されている場合は使用
       if (deviceId && deviceId !== 'default') {
         audioConstraints.deviceId = { exact: deviceId }
       }
-      
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints
+        audio: audioConstraints,
       })
 
       // AudioContextの設定
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext
       const audioContext = new AudioContextClass({
-        sampleRate: 44100
+        sampleRate: 44100,
       })
-      
+
       const source = audioContext.createMediaStreamSource(stream)
       const gainNode = audioContext.createGain()
       const analyser = audioContext.createAnalyser()
-      
+
       analyser.fftSize = 2048
       analyser.smoothingTimeConstant = 0.8
-      
+
       source.connect(gainNode)
       gainNode.connect(analyser)
-      
+
       // MediaRecorderの設定
       const recorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 128000,
       })
 
       audioContextRef.current = audioContext
       gainNodeRef.current = gainNode
       analyserRef.current = analyser
-      
+
       setAudioStream(stream)
       setMediaRecorder(recorder)
       setIsInitialized(true)
-      
     } catch (err) {
       console.error('Audio initialization error:', err)
       setError(err instanceof Error ? err : new Error('Unknown error'))
@@ -198,7 +212,10 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   const setDefaultSavePath = useCallback(async () => {
     if (window.electronAPI) {
       try {
-        const defaultPath = await window.electronAPI.getDefaultSavePath(title, inputSource)
+        const defaultPath = await window.electronAPI.getDefaultSavePath(
+          title,
+          inputSource
+        )
         setCurrentFilePath(defaultPath)
       } catch (err) {
         console.error('デフォルト保存先設定エラー:', err)
@@ -210,10 +227,13 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   useEffect(() => {
     initializeAudio()
     setDefaultSavePath() // デフォルトの保存先を設定
-    
+
     return () => {
       // クリーンアップ
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      if (
+        audioContextRef.current &&
+        audioContextRef.current.state !== 'closed'
+      ) {
         audioContextRef.current.close()
       }
       if (audioStream) {
@@ -235,7 +255,10 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
   // 保存先選択
   const selectSaveLocation = useCallback(async (): Promise<boolean> => {
     if (window.electronAPI) {
-      const saveDialog = await window.electronAPI.showSaveDialog(title, inputSource)
+      const saveDialog = await window.electronAPI.showSaveDialog(
+        title,
+        inputSource
+      )
       if (saveDialog.canceled) {
         return false
       }
@@ -253,7 +276,9 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
 
     // 保存先が設定されていない場合はエラー
     if (!currentFilePath) {
-      throw new Error('保存先が設定されていません。先に保存先を選択してください。')
+      throw new Error(
+        '保存先が設定されていません。先に保存先を選択してください。'
+      )
     }
 
     setRecordingData([])
@@ -271,31 +296,39 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
       if (autoSaveIntervalRef.current) {
         clearInterval(autoSaveIntervalRef.current)
       }
-      
+
       // 最新のrecordingDataを使用して保存
       const latestRecordingData = recordingDataRef.current
       const latestFilePath = currentFilePathRef.current
-      
+
       if (latestRecordingData.length === 0) {
         console.log('保存するデータがありません')
         return
       }
 
-      console.log('保存開始 - データサイズ:', latestRecordingData.length, 'ファイルパス:', latestFilePath)
+      console.log(
+        '保存開始 - データサイズ:',
+        latestRecordingData.length,
+        'ファイルパス:',
+        latestFilePath
+      )
 
       const webmBlob = new Blob(latestRecordingData, { type: 'audio/webm' })
-      
+
       if (latestFilePath && window.electronAPI) {
         try {
           // WebMからWAVに変換
           console.log('WAV変換開始...')
           const wavBlob = await convertWebMToWav(webmBlob)
           console.log('WAV変換完了')
-          
+
           // WAVファイルを保存
           const arrayBuffer = await wavBlob.arrayBuffer()
-          const result = await window.electronAPI.writeFile(latestFilePath, arrayBuffer)
-          
+          const result = await window.electronAPI.writeFile(
+            latestFilePath,
+            arrayBuffer
+          )
+
           if (result.success) {
             console.log('ファイル保存成功:', latestFilePath)
           } else {
@@ -304,7 +337,9 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
           }
         } catch (err) {
           console.error('ファイル保存エラー:', err)
-          setError(err instanceof Error ? err : new Error('ファイル保存に失敗しました'))
+          setError(
+            err instanceof Error ? err : new Error('ファイル保存に失敗しました')
+          )
         }
       } else {
         // フォールバック: WAVでブラウザダウンロード
@@ -312,7 +347,7 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
           console.log('フォールバック保存でWAV変換開始...')
           const wavBlob = await convertWebMToWav(webmBlob)
           console.log('フォールバック保存でWAV変換完了')
-          
+
           const url = URL.createObjectURL(wavBlob)
           const a = document.createElement('a')
           a.href = url
@@ -347,10 +382,12 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
     mediaRecorder.start(1000)
 
     // 5分ごとの自動保存を設定
-    autoSaveIntervalRef.current = setInterval(() => {
-      saveChunkData()
-    }, 5 * 60 * 1000) // 5分
-
+    autoSaveIntervalRef.current = setInterval(
+      () => {
+        saveChunkData()
+      },
+      5 * 60 * 1000
+    ) // 5分
   }, [mediaRecorder, currentFilePath])
 
   // 録音停止
@@ -372,7 +409,7 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
         console.log('緊急保存でWAV変換開始...')
         const wavBlob = await convertWebMToWav(webmBlob)
         console.log('緊急保存でWAV変換完了')
-        
+
         const url = URL.createObjectURL(wavBlob)
         const a = document.createElement('a')
         a.href = url
@@ -399,14 +436,12 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
     }
   }, [recordingData, convertWebMToWav])
 
-
   // 入力ゲインの調整
   const setInputGain = useCallback((gain: number) => {
     if (gainNodeRef.current) {
       gainNodeRef.current.gain.value = gain
     }
   }, [])
-
 
   return {
     audioStream,
@@ -422,7 +457,7 @@ const useAudioRecorder = (title: string = '', inputSource: string = '', deviceId
     setInputGain,
     saveChunkData,
     initializeAudio,
-    selectSaveLocation
+    selectSaveLocation,
   }
 }
 

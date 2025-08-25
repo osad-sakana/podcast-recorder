@@ -7,7 +7,11 @@ interface VolumeMetersProps {
   onClipping?: (isClipping: boolean) => void
 }
 
-const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate, onClipping }) => {
+const VolumeMeters: React.FC<VolumeMetersProps> = ({
+  audioStream,
+  onLevelUpdate,
+  onClipping,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animationRef = useRef<number | null>(null)
@@ -18,14 +22,15 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
   useEffect(() => {
     if (!audioStream) return
 
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    const AudioContextClass =
+      window.AudioContext || (window as any).webkitAudioContext
     const audioContext = new AudioContextClass()
     const source = audioContext.createMediaStreamSource(audioStream)
     const analyser = audioContext.createAnalyser()
-    
+
     analyser.fftSize = 256
     analyser.smoothingTimeConstant = 0.3
-    
+
     source.connect(analyser)
     analyserRef.current = analyser
 
@@ -35,7 +40,7 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
       const canvas = canvasRef.current
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      
+
       const width = canvas.width
       const height = canvas.height
 
@@ -48,9 +53,10 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
       const normalizedLevel = average / 255
 
       // dB変換 (-60dB to 0dB range)
-      const dBLevel = normalizedLevel > 0 ? 20 * Math.log10(normalizedLevel) : -60
+      const dBLevel =
+        normalizedLevel > 0 ? 20 * Math.log10(normalizedLevel) : -60
       const displayLevel = Math.max(-60, Math.min(0, dBLevel))
-      
+
       setCurrentLevel(displayLevel)
       if (onLevelUpdate) onLevelUpdate(displayLevel)
 
@@ -81,13 +87,18 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
 
       // レベルバーの描画
       const levelWidth = ((displayLevel + 60) / 60) * meterWidth
-      
+
       // グラデーション作成
-      const gradient = ctx.createLinearGradient(meterX, 0, meterX + meterWidth, 0)
+      const gradient = ctx.createLinearGradient(
+        meterX,
+        0,
+        meterX + meterWidth,
+        0
+      )
       gradient.addColorStop(0, '#38A169') // 緑
       gradient.addColorStop(0.7, '#D69E2E') // 黄色
       gradient.addColorStop(0.9, '#E53E3E') // 赤
-      
+
       ctx.fillStyle = clipping ? '#E53E3E' : gradient
       ctx.fillRect(meterX, meterY, Math.max(0, levelWidth), meterHeight)
 
@@ -102,13 +113,13 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
       ctx.fillStyle = '#A0AEC0'
       ctx.font = '10px monospace'
       ctx.textAlign = 'center'
-      
+
       // dBスケール
       const scalePoints = [-60, -40, -20, -10, -6, -3, 0]
       scalePoints.forEach(dB => {
         const x = meterX + ((dB + 60) / 60) * meterWidth
         ctx.fillText(dB.toString(), x, meterY + meterHeight + 15)
-        
+
         // スケールライン
         ctx.fillStyle = '#4A5568'
         ctx.fillRect(x, meterY - 5, 1, 5)
@@ -140,13 +151,17 @@ const VolumeMeters: React.FC<VolumeMetersProps> = ({ audioStream, onLevelUpdate,
           <Text color={isClipping ? 'red.400' : 'green.400'}>
             {currentLevel.toFixed(1)}dB
           </Text>
-          <Text color="gray.400">
-            Peak: {peakLevel.toFixed(1)}dB
-          </Text>
+          <Text color="gray.400">Peak: {peakLevel.toFixed(1)}dB</Text>
         </HStack>
       </HStack>
-      
-      <Box w="full" h="50px" bg="gray.800" borderRadius="md" position="relative">
+
+      <Box
+        w="full"
+        h="50px"
+        bg="gray.800"
+        borderRadius="md"
+        position="relative"
+      >
         <canvas
           ref={canvasRef}
           width={350}

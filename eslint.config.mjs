@@ -8,7 +8,7 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**'],
+    ignores: ['dist/**', 'node_modules/**', 'src/main/preload.js', 'src/main/main.js'],
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
@@ -29,9 +29,9 @@ export default [
     },
     plugins: {
       '@typescript-eslint': typescript,
-      'react': react,
+      react: react,
       'react-hooks': reactHooks,
-      'prettier': prettier,
+      prettier: prettier,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -39,7 +39,10 @@ export default [
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'prettier/prettier': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'react/react-in-jsx-scope': 'off',

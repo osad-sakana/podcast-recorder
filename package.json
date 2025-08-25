@@ -1,13 +1,13 @@
 {
   "name": "podcast-recorder",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple podcast recording application built with Electron and React",
   "main": "src/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "cross-env NODE_ENV=development electron .",
-    "build": "npm run lint && npm run type-check && vite build && electron-builder",
+    "build": "npm run type-check && npm run build:vite && npx electron-builder",
     "build:vite": "vite build",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
@@ -24,7 +24,6 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@vitejs/plugin-react": "^5.0.0",
-    "electron": "^37.3.0",
     "framer-motion": "^12.23.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -40,6 +39,7 @@
     "@typescript-eslint/parser": "^8.39.1",
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
+    "electron": "^37.3.0",
     "electron-builder": "^26.0.12",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
@@ -50,5 +50,23 @@
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"
+  },
+  "build": {
+    "appId": "com.podcast-recorder.app",
+    "productName": "Podcast Recorder",
+    "directories": {
+      "output": "dist/packages"
+    },
+    "files": [
+      "dist/renderer/**/*",
+      "src/main/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "dmg": {
+      "title": "Podcast Recorder"
+    }
   }
 }
